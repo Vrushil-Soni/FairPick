@@ -22,7 +22,7 @@ What makes this project unique is its development story: **It was built entirely
 ## 🚀 How to Use
 
 ### Option 1: Live Demo (Recommended)
-https://vrushil-soni.github.io/FairPick/
+<a href="https://vrushil-soni.github.io/FairPick/" target="_blank" 🚀 Launch FairPick (Live Demo!)>
 
 ### Option 2: Run Locally
 Since FairPick is a **Single-File Application**, you don't need `npm`, `node`, or a server.
