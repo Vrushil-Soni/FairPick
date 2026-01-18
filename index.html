@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>FairPick Final</title>
+    <style>
+        /* --- GLOBAL STYLES --- */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f2f2f7;
+            margin: 0; padding: 15px;
+            color: #1c1c1e;
+            -webkit-tap-highlight-color: transparent;
+            padding-bottom: 80px;
+        }
+        .card {
+            background: white; border-radius: 16px; padding: 20px;
+            margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        
+        /* HEADER */
+        .header-title { margin: 0; font-size: 28px; font-weight: 800; text-align: center; color: #000; }
+        .header-subtitle { margin: 0; text-align: center; font-family: "Didot", serif; font-style: italic; color: #666; font-size: 14px; margin-top: 4px; }
+
+        /* GROUP BAR */
+        .group-bar { display: flex; gap: 8px; margin-top: 20px; margin-bottom: 10px; }
+        select.group-dropdown {
+            flex-grow: 1; padding: 10px; border-radius: 10px; border: 1px solid #007aff;
+            background: #f0f8ff; color: #007aff; font-weight: bold; font-size: 16px; width: 50%;
+        }
+
+        /* BUTTONS */
+        button {
+            border: none; padding: 12px; border-radius: 10px;
+            font-size: 15px; font-weight: 600; cursor: pointer;
+            width: 100%; margin-top: 5px; transition: opacity 0.2s;
+        }
+        button:active { opacity: 0.6; }
+        .btn-blue { background: #007aff; color: white; }
+        .btn-green { background: #34c759; color: white; }
+        .btn-red { background: #ff3b30; color: white; }
+        .btn-orange { background: #ff9500; color: white; }
+        .btn-gray { background: #e5e5ea; color: black; }
+        .btn-sm { width: auto; padding: 6px 12px; font-size: 13px; }
+        
+        .btn-icon { width: 44px; padding: 0; display:flex; align-items:center; justify-content:center; font-size: 18px; flex-shrink: 0; }
+
+        input {
+            width: 100%; padding: 12px; border: 1px solid #d1d1d6;
+            border-radius: 10px; font-size: 16px; box-sizing: border-box;
+            -webkit-appearance: none; margin-bottom: 10px;
+        }
+
+        /* LIST & TOGGLES */
+        .member-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
+        .member-left { display: flex; align-items: center; gap: 12px; }
+        .badge-won { background: #e8f5e9; color: #2e7d32; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: bold; display: block; margin-top: 2px; width: fit-content; }
+        .paid-toggle {
+            width: 28px; height: 28px; border-radius: 50%; border: 2px solid #ccc;
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+            font-size: 14px; color: transparent; transition: 0.2s; flex-shrink: 0;
+        }
+        .paid-toggle.active { background: #34c759; border-color: #34c759; color: white; }
+
+        /* MODALS */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 2000; align-items: center; justify-content: center;
+        }
+        .modal-box { 
+            background: white; width: 85%; padding: 25px; border-radius: 18px; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3); text-align: center;
+        }
+        .modal-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
+        .modal-text { font-size: 14px; color: #555; margin-bottom: 20px; line-height: 1.5; }
+
+        /* ANIMATION */
+        #animLayer { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #222; z-index: 3000; flex-direction: column; }
+        #canvas { display: block; width: 100%; height: 100%; }
+        #revealLayer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; justify-content: center; align-items: center; padding-top: 40px; overflow-y: auto; }
+        .paper-chit { width: 260px; height: 110px; position: relative; perspective: 1000px; margin-bottom: 30px; cursor: pointer; flex-shrink: 0; }
+        .chit-content { width: 100%; height: 100%; background: #fffde7; border: 1px solid #ccc; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; position: absolute; top: 0; left: 0; box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 1; }
+        .fold-top, .fold-bottom { width: 100%; height: 50%; background: #f0f0f0; border: 1px solid #ddd; position: absolute; left: 0; backface-visibility: hidden; transition: transform 0.6s ease-out, opacity 0.6s; z-index: 5; }
+        .fold-top { top: 0; transform-origin: bottom; background: linear-gradient(#fff, #eee); }
+        .fold-bottom { bottom: 0; transform-origin: top; background: linear-gradient(#eee, #ddd); }
+        .paper-chit.open .fold-top { transform: rotateX(160deg); opacity: 0; }
+        .paper-chit.open .fold-bottom { transform: rotateX(-160deg); opacity: 0; }
+    </style>
+</head>
+<body>
+
+<div class="card" style="padding-top:10px;">
+    <h1 class="header-title">FairPick</h1>
+    <p class="header-subtitle">- by Vrushil Soni</p>
+    
+    <div class="group-bar">
+        <select id="groupSelect" class="group-dropdown" onchange="switchGroup()"></select>
+        <button class="btn-gray btn-icon" onclick="prepRenameGroup()">✎</button>
+        <button class="btn-blue btn-icon" onclick="prepAddGroup()">+</button>
+        <button class="btn-red btn-icon" onclick="prepDeleteGroup()" style="background:#ff3b3020; color:#ff3b30;">🗑</button>
+    </div>
+
+    <div style="display:flex; gap:10px; margin-top:10px;">
+        <button class="btn-gray" onclick="showExport()">📤 Group Backup</button>
+        <button class="btn-gray" onclick="showImport()">📥 Group Restore</button>
+    </div>
+    <div style="display:flex; gap:10px; margin-top:10px;">
+        <button class="btn-orange" onclick="prepNewMonth()">📅 New Month</button>
+        <button class="btn-red" onclick="prepReset()">⚠️ Full Reset</button>
+    </div>
+</div>
+
+<div class="card" style="border: 2px solid #007aff; background: #f0f8ff;">
+    <h3>₹ Pool Calculation</h3>
+    <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px;">
+        <label>Per Person (₹):</label>
+        <input type="number" id="contribAmount" onchange="updateContrib()" style="width:120px; margin:0;">
+    </div>
+    <div style="background: white; padding: 15px; border-radius: 8px; font-size: 14px; line-height: 1.6;">
+        <div>Total Members: <strong id="statMembers">0</strong></div>
+        <div>Paid Members: <strong id="statPaidCount">0</strong></div>
+        <div style="border-top:1px solid #eee; margin-top:5px; padding-top:5px;">
+            Total Collected: <strong id="statCollected" style="color:#2e7d32; font-size:16px;">₹0</strong>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h3>🎲 Draw Winners</h3>
+    <label>Winners to pick:</label>
+    <select id="pickCount" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px; font-size:16px; background:white;">
+        <option value="1">1 Person</option>
+        <option value="2" selected>2 People</option>
+        <option value="3">3 People</option>
+    </select>
+    <button class="btn-green" onclick="startAnimation()">🎲 ROLL CHITS</button>
+</div>
+
+<div class="card">
+    <h3>👥 Member List</h3>
+    <div style="display:flex; gap:5px; margin-bottom:15px;">
+        <input type="text" id="newName" placeholder="Enter Name" style="margin:0;">
+        <button class="btn-blue" style="width:auto; margin:0;" onclick="addMember()">Add</button>
+    </div>
+    <div id="memberList"></div>
+</div>
+
+<div id="confirmModal" class="modal-overlay">
+    <div class="modal-box">
+        <div id="confirmTitle" class="modal-title">Confirm</div>
+        <div id="confirmText" class="modal-text">Are you sure?</div>
+        <div style="display:flex; gap:10px;">
+            <button class="btn-gray" onclick="closeModals()">Cancel</button>
+            <button class="btn-blue" onclick="executeConfirm()">Yes</button>
+        </div>
+    </div>
+</div>
+
+<div id="inputModal" class="modal-overlay">
+    <div class="modal-box">
+        <div id="inputTitle" class="modal-title">Enter Value</div>
+        <input type="text" id="inputField" placeholder="Type here..." autofocus>
+        <div style="display:flex; gap:10px;">
+            <button class="btn-gray" onclick="closeModals()">Cancel</button>
+            <button class="btn-blue" onclick="executeInput()">Save</button>
+        </div>
+    </div>
+</div>
+
+<div id="exportModal" class="modal-overlay">
+    <div class="modal-box">
+        <h3>📤 Group Backup</h3>
+        <p style="font-size:12px;">Saving: "<span id="exportGroupName"></span>"</p>
+        <textarea id="exportBox" rows="4" style="width:100%; font-family:monospace; margin-bottom:10px;" readonly></textarea>
+        <button class="btn-blue" onclick="copyExport()">Copy Text</button>
+        <button class="btn-gray" onclick="closeModals()">Close</button>
+    </div>
+</div>
+<div id="importModal" class="modal-overlay">
+    <div class="modal-box">
+        <h3>📥 Group Restore</h3>
+        <p style="font-size:12px;">Overwriting: "<span id="importGroupName"></span>"</p>
+        <textarea id="importBox" rows="4" style="width:100%; font-family:monospace; margin-bottom:10px;"></textarea>
+        <button class="btn-blue" onclick="runImport()">Load Data</button>
+        <button class="btn-gray" onclick="closeModals()">Cancel</button>
+    </div>
+</div>
+
+<div id="animLayer">
+    <canvas id="canvas"></canvas>
+    <div id="revealLayer">
+        <h2 style="color:white; margin-bottom: 20px;">Tap Chits to Open!</h2>
+        <div id="chitsContainer"></div>
+        <button class="btn-gray" style="width:auto; margin-top:30px; margin-bottom:50px;" onclick="closeAnim()">Finish & Save</button>
+    </div>
+</div>
+
+<script>
+    // --- SAFE STARTUP ---
+    window.onerror = function(msg, url, line) {
+        alert("App Error: " + msg);
+    };
+
+    // --- DATA STORE ---
+    let masterDB = {
+        currentId: 'default',
+        groups: { 'default': { name: 'Default Group', members: [], contrib: 1000 } }
+    };
+    
+    // Globals for Modal callbacks
+    let pendingConfirmAction = null;
+    let pendingInputAction = null;
+
+    // --- INIT ---
+    function init() {
+        try {
+            const saved = localStorage.getItem('fairpick_vrushil_db');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                // Migration Check: If old data format, convert it
+                if (Array.isArray(parsed.members)) {
+                    masterDB.groups['default'] = {
+                        name: 'Default Group',
+                        members: parsed.members || [],
+                        contrib: parsed.contrib || 1000
+                    };
+                    saveDB();
+                } else {
+                    masterDB = parsed;
+                }
+            }
+        } catch(e) {
+            console.log("DB Reset needed");
+        }
+
+        // Safety check
+        if(!masterDB.groups || Object.keys(masterDB.groups).length === 0) {
+            masterDB.groups = { 'default': { name: 'Default Group', members: [], contrib: 1000 } };
+            masterDB.currentId = 'default';
+        }
+        if(!masterDB.groups[masterDB.currentId]) {
+            masterDB.currentId = Object.keys(masterDB.groups)[0];
+        }
+
+        updateGroupDropdown();
+        render();
+    }
+
+    function saveDB() {
+        localStorage.setItem('fairpick_vrushil_db', JSON.stringify(masterDB));
+    }
+
+    function getGroup() {
+        return masterDB.groups[masterDB.currentId];
+    }
+
+    // --- GROUP UI ---
+    function updateGroupDropdown() {
+        const select = document.getElementById('groupSelect');
+        select.innerHTML = '';
+        Object.keys(masterDB.groups).forEach(key => {
+            const opt = document.createElement('option');
+            opt.value = key;
+            opt.innerText = masterDB.groups[key].name || "Unnamed";
+            if (key === masterDB.currentId) opt.selected = true;
+            select.appendChild(opt);
+        });
+    }
+
+    function switchGroup() {
+        masterDB.currentId = document.getElementById('groupSelect').value;
+        saveDB();
+        render();
+    }
+
+    // --- MODAL LOGIC (ROBUST) ---
+    function closeModals() {
+        document.querySelectorAll('.modal-overlay').forEach(el => el.style.display = 'none');
+        pendingConfirmAction = null;
+        pendingInputAction = null;
+    }
+
+    function openConfirm(title, text, callback) {
+        document.getElementById('confirmTitle').innerText = title;
+        document.getElementById('confirmText').innerText = text;
+        pendingConfirmAction = callback;
+        document.getElementById('confirmModal').style.display = 'flex';
+    }
+
+    function executeConfirm() {
+        if(pendingConfirmAction) pendingConfirmAction();
+        closeModals();
+    }
+
+    function openInput(title, val, callback) {
+        document.getElementById('inputTitle').innerText = title;
+        const field = document.getElementById('inputField');
+        field.value = val;
+        pendingInputAction = callback;
+        document.getElementById('inputModal').style.display = 'flex';
+        field.focus();
+    }
+
+    function executeInput() {
+        const val = document.getElementById('inputField').value.trim();
+        if(pendingInputAction) pendingInputAction(val);
+        closeModals();
+    }
+
+    // --- GROUP ACTIONS ---
+    function prepAddGroup() {
+        openInput("New Group Name", "", (name) => {
+            if(name) {
+                const id = 'grp_' + Date.now();
+                masterDB.groups[id] = { name: name, members: [], contrib: 1000 };
+                masterDB.currentId = id;
+                saveDB();
+                updateGroupDropdown();
+                render();
+            }
+        });
+    }
+
+    function prepRenameGroup() {
+        openInput("Rename Group", getGroup().name, (name) => {
+            if(name) {
+                getGroup().name = name;
+                saveDB();
+                updateGroupDropdown();
+            }
+        });
+    }
+
+    function prepDeleteGroup() {
+        const count = Object.keys(masterDB.groups).length;
+        if(count <= 1) return alert("Cannot delete the only group.");
+        
+        openConfirm("Delete Group?", `Delete "${getGroup().name}" forever?`, () => {
+            delete masterDB.groups[masterDB.currentId];
+            masterDB.currentId = Object.keys(masterDB.groups)[0];
+            saveDB();
+            updateGroupDropdown();
+            render();
+        });
+    }
+
+    // --- MEMBER ACTIONS ---
+    function addMember() {
+        const name = document.getElementById('newName').value.trim();
+        if(!name) return;
+        getGroup().members.push({ id: Date.now(), name: name, hasWon: false, hasPaid: true });
+        document.getElementById('newName').value = '';
+        saveDB();
+        render();
+    }
+
+    function togglePaid(id) {
+        const m = getGroup().members.find(x => x.id === id);
+        if(m) { m.hasPaid = !m.hasPaid; saveDB(); render(); }
+    }
+
+    function toggleWon(id) {
+        const m = getGroup().members.find(x => x.id === id);
+        if(m) { m.hasWon = !m.hasWon; saveDB(); render(); }
+    }
+
+    function prepDeleteMember(id) {
+        openConfirm("Remove Member?", "Delete this person?", () => {
+            const g = getGroup();
+            g.members = g.members.filter(m => m.id !== id);
+            saveDB();
+            render();
+        });
+    }
+
+    function updateContrib() {
+        getGroup().contrib = parseInt(document.getElementById('contribAmount').value) || 0;
+        saveDB();
+        render();
+    }
+
+    // --- RESET ACTIONS ---
+    function prepNewMonth() {
+        openConfirm("Start New Month?", "Reset all Payments? (Winners stay marked)", () => {
+            getGroup().members.forEach(m => m.hasPaid = false);
+            saveDB();
+            render();
+        });
+    }
+
+    function prepReset() {
+        const count = getGroup().members.length;
+        openConfirm("Full Reset?", `Clear ALL Winners & Payments? (End of ${count}-month cycle)`, () => {
+            getGroup().members.forEach(m => { m.hasWon = false; m.hasPaid = false; });
+            saveDB();
+            render();
+        });
+    }
+
+    // --- RENDER ---
+    function render() {
+        const grp = getGroup();
+        const list = document.getElementById('memberList');
+        list.innerHTML = '';
+        document.getElementById('contribAmount').value = grp.contrib;
+        
+        grp.members.sort((a,b) => a.hasWon - b.hasWon);
+
+        const total = grp.members.length;
+        const paidCount = grp.members.filter(m => m.hasPaid).length;
+        const pot = paidCount * grp.contrib;
+        
+        document.getElementById('statMembers').innerText = total;
+        document.getElementById('statPaidCount').innerText = paidCount;
+        document.getElementById('statCollected').innerText = "₹" + pot.toLocaleString('en-IN');
+
+        if(total === 0) list.innerHTML = '<div style="color:#999; text-align:center; padding:15px;">No members here.</div>';
+
+        grp.members.forEach(m => {
+            const div = document.createElement('div');
+            div.className = 'member-row';
+            div.style.background = m.hasWon ? '#f9f9f9' : 'transparent';
+            div.innerHTML = `
+                <div class="member-left">
+                    <div class="paid-toggle ${m.hasPaid ? 'active' : ''}" onclick="togglePaid(${m.id})">✓</div>
+                    <div>
+                        <span style="font-weight:600; font-size:16px; color:${m.hasWon ? '#999': '#000'}">${m.name}</span>
+                        ${m.hasWon ? '<span class="badge-won">Winner</span>' : ''}
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <button class="btn-gray btn-sm" onclick="toggleWon(${m.id})">${m.hasWon ? 'Undo' : 'Mark Won'}</button>
+                    <button class="btn-red btn-sm" onclick="prepDeleteMember(${m.id})" style="padding: 6px 10px;">✕</button>
+                </div>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    // --- EXPORT/IMPORT ---
+    function showExport() {
+        saveDB();
+        const grp = getGroup();
+        document.getElementById('exportGroupName').innerText = grp.name;
+        document.getElementById('exportModal').style.display = 'flex';
+        document.getElementById('exportBox').value = JSON.stringify(grp);
+    }
+    function copyExport() {
+        document.getElementById("exportBox").select();
+        document.execCommand("copy");
+    }
+    function showImport() {
+        const grp = getGroup();
+        document.getElementById('importGroupName').innerText = grp.name;
+        document.getElementById('importModal').style.display = 'flex';
+        document.getElementById('importBox').value = '';
+    }
+    function runImport() {
+        try {
+            const data = JSON.parse(document.getElementById('importBox').value);
+            if(data.members && Array.isArray(data.members)) {
+                masterDB.groups[masterDB.currentId] = data;
+                saveDB();
+                closeModals();
+                // If imported data changed the name, update dropdown
+                updateGroupDropdown();
+                render();
+                alert("Data Loaded!");
+            } else {
+                alert("Invalid Format");
+            }
+        } catch(e) { alert("Error parsing data"); }
+    }
+
+    // --- ANIMATION ---
+    let ctx, cvs, particles = [], animationId;
+    let selectedWinners = [];
+
+    function startAnimation() {
+        const grp = getGroup();
+        const active = grp.members.filter(m => !m.hasWon);
+        const count = parseInt(document.getElementById('pickCount').value);
+        
+        if (active.length < count) {
+            alert(`Only ${active.length} active people left. Need ${count}.`);
+            return;
+        }
+
+        const totalPot = grp.members.filter(m => m.hasPaid).length * grp.contrib;
+        const prizePerWinner = Math.floor(totalPot / count);
+
+        const shuffled = active.sort(() => 0.5 - Math.random());
+        selectedWinners = shuffled.slice(0, count).map(w => ({...w, prize: prizePerWinner}));
+
+        document.getElementById('animLayer').style.display = 'flex';
+        document.getElementById('revealLayer').style.display = 'none';
+        
+        cvs = document.getElementById('canvas');
+        ctx = cvs.getContext('2d');
+        cvs.width = window.innerWidth;
+        cvs.height = window.innerHeight;
+
+        particles = [];
+        for(let i=0; i<active.length; i++) {
+            particles.push({
+                x: Math.random() * cvs.width,
+                y: -100 - (Math.random() * 800),
+                w: 50, h: 35,
+                vx: (Math.random() - 0.5) * 15, vy: 0,
+                angle: Math.random() * 6.28, vAngle: (Math.random() - 0.5) * 0.3,
+                color: '#fffde7'
+            });
+        }
+
+        loop();
+        setTimeout(() => {
+            cancelAnimationFrame(animationId);
+            cvs.style.display = 'none';
+            showReveal();
+        }, 3500);
+    }
+
+    function loop() {
+        ctx.fillStyle = '#222';
+        ctx.fillRect(0,0, cvs.width, cvs.height);
+        ctx.fillStyle = '#5d4037';
+        ctx.fillRect(0, cvs.height - 150, cvs.width, 150);
+
+        particles.forEach(p => {
+            p.vy += 0.5; p.x += p.vx; p.y += p.vy; p.angle += p.vAngle;
+            if (p.y > cvs.height - 180) { p.y = cvs.height - 180; p.vy *= -0.5; p.vx *= 0.9; }
+            if (p.x < 0 || p.x > cvs.width) p.vx *= -1;
+
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.angle);
+            ctx.fillStyle = p.color;
+            ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+            ctx.strokeStyle = '#999'; ctx.strokeRect(-p.w/2, -p.h/2, p.w, p.h);
+            ctx.restore();
+        });
+        animationId = requestAnimationFrame(loop);
+    }
+
+    function showReveal() {
+        const layer = document.getElementById('revealLayer');
+        const container = document.getElementById('chitsContainer');
+        layer.style.display = 'flex';
+        container.innerHTML = '';
+
+        selectedWinners.forEach(w => {
+            const el = document.createElement('div');
+            el.className = 'paper-chit';
+            el.innerHTML = `
+                <div class="chit-content">
+                    ${w.name}
+                    <div style="font-size:14px; color:#2e7d32; margin-top:5px; font-weight:normal;">
+                        Wins ₹${w.prize.toLocaleString('en-IN')}
+                    </div>
+                </div>
+                <div class="fold-top"></div>
+                <div class="fold-bottom"></div>
+            `;
+            el.onclick = function() { this.classList.add('open'); };
+            container.appendChild(el);
+        });
+    }
+
+    function closeAnim() {
+        const grp = getGroup();
+        selectedWinners.forEach(w => {
+            const m = grp.members.find(x => x.id === w.id);
+            if(m) m.hasWon = true;
+        });
+        saveDB();
+        document.getElementById('animLayer').style.display = 'none';
+        document.getElementById('canvas').style.display = 'block';
+        render();
+    }
+
+    // Start App
+    init();
+
+</script>
+</body>
+</html>
